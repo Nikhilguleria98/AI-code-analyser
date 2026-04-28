@@ -1,0 +1,39 @@
+from tkinter import *
+from tkinter import ttk
+
+def create_combobox_with_flags(parent, options):
+    # Create a list of tuples (display_text, value)
+    display_values = [f"{flag} {name}" for name, (code, flag) in options.items()]
+    values = [code for name, (code, flag) in options.items()]
+
+    # Create a Combobox with display values
+    combobox = ttk.Combobox(parent, values=display_values, state="readonly")
+    combobox.grid(row=3, column=1, padx=10, pady=5)
+
+    # Set the default value
+    combobox.set(display_values[0])
+
+    # Function to update the selected value
+    def update_selected(event):
+        selected_index = combobox.current()
+        selected_code = values[selected_index]
+        print(f"Selected Currency Code: {selected_code}")
+
+    # Bind the selection event
+    combobox.bind("<<ComboboxSelected>>", update_selected)
+
+    return combobox
+
+# Example usage
+root = Tk()
+OPTIONS = {
+    "Australian Dollar (A$)": ("AUD", "🇦🇺"),
+    "Brazilian Real (R$)": ("BRL", "🇧🇷"),
+    "British Pound (£)": ("GBP", "🇬🇧"),
+    "Chinese Yuan (¥)": ("CNY", "🇨🇳"),
+    "Sri Lankan Rupee (Rs)": ("LKR", "🇱🇰"),
+    "Pakistani Rupee (Rs)": ("PKR", "🇵🇰"),
+    "US Dollar ($)": ("USD", "🇺🇸")
+}
+create_combobox_with_flags(root, OPTIONS)
+root.mainloop()

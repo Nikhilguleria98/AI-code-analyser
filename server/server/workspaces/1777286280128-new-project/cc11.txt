@@ -1,0 +1,91 @@
+import tkinter as tk
+from tkinter import ttk
+
+# Setup main window
+converter = tk.Tk()
+converter.geometry("700x450")
+converter.title("Currency Converter")
+converter.configure(bg="#f0f8ff")  # Light pastel blue background
+
+# Exchange rates relative to INR
+OPTIONS = {
+    "Australian Dollar (A$)": 54.93,
+    "Brazilian Real (R$)": 15.08,
+    "British Pound (£)": 115.32,
+    "Chinese Yuan (¥)": 11.84,
+    "SriLankan Rupee (Rs)": 0.28,
+    "Pakistani Rupee (Rs)": 0.30,
+    "US Dollar ($)": 85.31
+
+
+# Conversion logic
+def convert():
+    try:
+        amount = float(entry_amount.get())
+        selected_currency = currency_var.get()
+        direction = direction_var.get()
+        rate = OPTIONS.get(selected_currency)
+
+        if direction == "INR ➡ Foreign":
+            converted = amount / rate
+            result_text = f"{amount} INR = {converted:.2f} {selected_currency}"
+        else:
+            converted = amount * rate
+            result_text = f"{amount} {selected_currency} = {converted:.2f} INR"
+
+        result_textbox.config(state='normal')
+        result_textbox.delete(1.0, tk.END)
+        result_textbox.insert(tk.INSERT, result_text)
+        result_textbox.config(state='disabled')
+
+    except ValueError:
+        result_textbox.config(state='normal')
+        result_textbox.delete(1.0, tk.END)
+        result_textbox.insert(tk.INSERT, "❗ Please enter a valid number.")
+        result_textbox.config(state='disabled')
+
+# Header
+title_label = tk.Label(
+    converter, text="Currency Converter", 
+    font=("Helvetica", 28, "bold"), 
+    fg="#003366", bg="#f0f8ff"
+)
+title_label.pack(pady=20)
+
+# Main Frame
+frame = tk.Frame(converter, bg="#f0f8ff")
+frame.pack(pady=10)
+
+# Amount Entry
+tk.Label(frame, text="Amount:", font=("Arial", 12, "bold"), bg="#f0f8ff").grid(row=0, column=0, padx=10, pady=10, sticky=tk.E)
+entry_amount = ttk.Entry(frame, font=("Arial", 14), width=20)
+entry_amount.grid(row=0, column=1, padx=10, pady=10)
+
+# Currency Dropdown
+tk.Label(frame, text="Currency:", font=("Arial", 12, "bold"), bg="#f0f8ff").grid(row=1, column=0, padx=10, pady=10, sticky=tk.E)
+currency_var = tk.StringVar()
+currency_var.set("Select")
+currency_menu = ttk.Combobox(frame, textvariable=currency_var, values=list(OPTIONS.keys()), font=("Arial", 12), state="readonly")
+currency_menu.grid(row=1, column=1, padx=10, pady=10)
+
+# Direction Dropdown
+tk.Label(frame, text="Direction:", font=("Arial", 12, "bold"), bg="#f0f8ff").grid(row=2, column=0, padx=10, pady=10, sticky=tk.E)
+direction_var = tk.StringVar()
+direction_var.set("INR ➡ Foreign")
+direction_menu = ttk.Combobox(frame, textvariable=direction_var, values=["INR ➡ Foreign", "Foreign ➡ INR"], font=("Arial", 12), state="readonly")
+direction_menu.grid(row=2, column=1, padx=10, pady=10)
+
+# Convert Button
+convert_button = tk.Button(
+    converter, text="Convert", font=("Arial", 14, "bold"), 
+    bg="#28a745", fg="white", width=15, command=convert
+)
+convert_button.pack(pady=20)
+
+# Result Display
+result_textbox = tk.Text(converter, height=3, width=50, font=("Arial", 12, "bold"), bd=5, bg="#ffffff", fg="#000000")
+result_textbox.pack()
+result_textbox.config(state='disabled')  # Prevent editing
+
+converter.mainloop()
+

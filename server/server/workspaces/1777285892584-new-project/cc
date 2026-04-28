@@ -1,0 +1,69 @@
+from tkinter import *
+
+converter = Tk()
+converter.geometry("650x500")
+converter.title("Currency Converter")
+
+# Exchange rates relative to INR
+OPTIONS = {
+    "Australian Dollar": 54.93,
+    "Brazilian Real": 15.08,
+    "British Pound": 115.32,
+    "Chinese Yuan": 11.84,
+    "SriLankan Rupee": 0.28,
+    "Pakistani Rupee": 0.30,
+    "US Dollar": 85.31
+}
+
+# Conversion Logic
+def convert():
+    try:
+        amount = float(entry_amount.get())
+        selected_currency = currency_var.get()
+        direction = direction_var.get()
+        rate = OPTIONS.get(selected_currency)
+
+        if direction == "INR ➡ Foreign":
+            converted = amount / rate
+            result_text = f"{amount} INR = {converted:.2f} {selected_currency}"
+        else:
+            converted = amount * rate
+            result_text = f"{amount} {selected_currency} = {converted:.2f} INR"
+
+        result.delete(1.0, END)
+        result.insert(INSERT, result_text)
+
+    except ValueError:
+        result.delete(1.0, END)
+        result.insert(INSERT, "Please enter a valid number.")
+
+# Title
+Label(converter, text="Currency Converter", font=("arial", 25, "bold", "underline"), fg="dark red").grid(row=0, column=0, columnspan=3, pady=10)
+
+# Result Display
+result = Text(converter, height=4, width=60, font=("arial", 10, "bold"), bd=5)
+result.grid(row=1, column=0, columnspan=3, padx=10, pady=10)
+
+# Amount Entry
+Label(converter, text="Amount:", font=("arial", 12, "bold")).grid(row=2, column=0, padx=10, sticky=E)
+entry_amount = Entry(converter, font=("calibri", 18), width=15)
+entry_amount.grid(row=2, column=1, pady=5)
+
+# Currency Dropdown
+Label(converter, text="Currency:", font=("arial", 12, "bold")).grid(row=3, column=0, padx=10, sticky=E)
+currency_var = StringVar(converter)
+currency_var.set("Select")
+currency_menu = OptionMenu(converter, currency_var, *OPTIONS)
+currency_menu.grid(row=3, column=1, sticky="ew", pady=5)
+
+# Direction Dropdown
+Label(converter, text="Conversion Direction:", font=("arial", 12, "bold")).grid(row=4, column=0, padx=10, sticky=E)
+direction_var = StringVar(converter)
+direction_var.set("INR ➡ Foreign")
+direction_menu = OptionMenu(converter, direction_var, "INR ➡ Foreign", "Foreign ➡ INR")
+direction_menu.grid(row=4, column=1, sticky="ew", pady=5)
+
+# Convert Button
+Button(converter, text="Convert", fg="white", bg="green", font=("calibri", 18), command=convert).grid(row=5, column=0, columnspan=3, pady=15)
+
+mainloop()
