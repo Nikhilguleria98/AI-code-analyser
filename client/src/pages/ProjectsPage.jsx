@@ -73,11 +73,22 @@ const ProjectsPage = () => {
   };
 
   const selectFile = async (projectId, filePath) => {
-    setSelectedFile(filePath);
-    const response = await api.get(`/projects/${projectId}/file`, { params: { path: filePath } });
+  setSelectedFile(filePath);
+
+  try {
+    const response = await api.get(`/projects/${projectId}/file`, {
+      params: { path: filePath }
+    });
+
+    console.log("📂 Selected File:", filePath);
+    console.log("🔥 API Issues:", response.data.issues);
+
     setContent(response.data.content);
     setIssues(response.data.issues);
-  };
+  } catch (error) {
+    console.error("❌ File fetch error:", error.response?.data || error.message);
+  }
+};
 
   const triggerAnalysis = async () => {
     if (!selectedProjectId) return;

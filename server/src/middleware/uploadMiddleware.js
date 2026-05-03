@@ -4,7 +4,7 @@ import sanitizeFilename from 'sanitize-filename';
 import { env } from '../config/env.js';
 
 const storage = multer.diskStorage({
-  destination: 'server/uploads',
+  destination: 'uploads',
   filename: (_req, file, cb) => {
     const base = sanitizeFilename(path.basename(file.originalname, path.extname(file.originalname)));
     const extension = path.extname(file.originalname).toLowerCase();

@@ -9,7 +9,7 @@ const isTextFile = (entryPath) => !BINARY_EXTENSIONS.has(path.extname(entryPath)
 
 export const createProjectWorkspace = async (projectName) => {
   const safeName = sanitizeFilename(projectName.toLowerCase().replace(/\s+/g, '-')) || 'project';
-  const folder = path.join(process.cwd(), 'server', 'workspaces', `${Date.now()}-${safeName}`);
+  const folder = path.join(process.cwd(), 'workspaces', `${Date.now()}-${safeName}`);
   await fs.mkdir(folder, { recursive: true });
   return folder;
 };

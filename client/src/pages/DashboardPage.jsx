@@ -19,7 +19,7 @@ const DashboardPage = () => {
   const fetchAllUserIssues = async () => {
     setLoadingIssues(true);
     try {
-      const response = await api.get('/issues/user');
+      const response = await api.get('/reports/issues/user');
       setAllIssues(response.data.issues || []);
     } catch (error) {
       console.error('Failed to fetch user issues:', error);

@@ -9,6 +9,7 @@ router.use(protect);
 router.get('/', listProjects);
 router.post('/upload', uploadFile.single('archive'), uploadProject);
 router.post('/analyze-code', analyzePastedCode);
+router.post('/analyze', triggerAnalysis);
 router.get('/:projectId/files', getProjectFiles);
 router.get('/:projectId/file', getProjectFileContent);
 

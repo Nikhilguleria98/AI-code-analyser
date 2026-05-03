@@ -4,8 +4,8 @@
   "type": "module",
   "main": "src/server.js",
   "scripts": {
-    "dev": "nodemon src/server.js",
-    "start": "nodemon src/server.js"
+    "dev": "nodemon --ignore uploads/ --ignore workspaces/ src/server.js",
+    "start": "nodemon --ignore uploads/ --ignore workspaces/ src/server.js"
   },
   "dependencies": {
     "@babel/parser": "^7.29.2",

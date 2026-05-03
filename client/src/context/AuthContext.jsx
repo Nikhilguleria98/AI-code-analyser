@@ -1,4 +1,4 @@
-import { createContext, useEffect, useState } from 'react';
+import { createContext, useEffect, useState, useCallback } from 'react';
 import api from '../api/axios';
 
 export const AuthContext = createContext(null);
@@ -38,9 +38,13 @@ export const AuthProvider = ({ children }) => {
         setRecentActivity(response.data.activity || []);
         console.log('User stats loaded:', response.data.stats); // Debug log
       })
-      .catch(() => {
-        localStorage.removeItem('token');
-        setUser(null);
+      .catch((error) => {
+        if (error.response?.status === 401) {
+          localStorage.removeItem('token');
+          setUser(null);
+        } else {
+          console.error('Auth check failed:', error);
+        }
       })
       .finally(() => setLoading(false));
   }, []);
@@ -67,7 +71,7 @@ export const AuthProvider = ({ children }) => {
     api.post('/auth/preferences', newPreferences).catch(console.error);
   };
 
-  const refreshUserStats = async () => {
+  const refreshUserStats = useCallback(async () => {
     try {
       const response = await api.get('/auth/stats');
       setUserStats(response.data.stats);
@@ -75,7 +79,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Failed to refresh user stats:', error);
     }
-  };
+  }, []);
 
   return (
     <AuthContext.Provider

@@ -8,7 +8,7 @@ import { ApiError } from '../utils/apiError.js';
 import { isSafeGithubUrl, sanitizeText } from '../utils/security.js';
 import { createProjectWorkspace, extractZipToWorkspace, readFileContent, saveUploadedFileToWorkspace, traverseProject } from '../services/fileService.js';
 import { cloneRepository } from '../services/gitService.js';
-import { analyzeFile } from '../services/analysisService.js';
+import { analyzeFile, analyzeProject } from '../services/analysisService.js';
 import { buildTree } from '../utils/fileTree.js';
 
 export const uploadProject = asyncHandler(async (req, res) => {
@@ -67,7 +67,18 @@ export const triggerAnalysis = asyncHandler(async (req, res) => {
     throw new ApiError(404, 'Project not found');
   }
 
-  analyzeProject({ project, userId: req.user._id, io: req.app.get('io') }).catch(() => {});
+ try {
+  analyzeProject({
+    project,
+    userId: req.user._id,
+    io: req.app.get('io')
+  }).catch((err) => {
+    console.error('Async Analysis Error:', err);
+  });
+} catch (err) {
+  console.error('Trigger Error:', err);
+  throw new ApiError(500, 'Failed to start analysis');
+}
 
   res.status(202).json({ message: 'Analysis started', projectId: project._id });
 });
@@ -91,21 +102,45 @@ export const getProjectFiles = asyncHandler(async (req, res) => {
 });
 
 export const getProjectFileContent = asyncHandler(async (req, res) => {
-  const project = await Project.findOne({ _id: req.params.projectId, user: req.user._id });
+  const project = await Project.findOne({
+    _id: req.params.projectId,
+    user: req.user._id
+  });
+
   if (!project) {
     throw new ApiError(404, 'Project not found');
   }
 
-  const relativePath = String(req.query.path || '');
+  const normalizePath = (p) => p.replace(/\\/g, "/").trim();
+
+  const relativePath = normalizePath(String(req.query.path || ''));
+
   if (!relativePath) {
     throw new ApiError(400, 'File path is required');
   }
 
+  console.log("📂 Requested file:", relativePath);
+
   const content = await readFileContent(project.rootPath, relativePath);
+
   const latestReport = await Report.findById(project.latestReport);
-  const issues = latestReport
-    ? await Issue.find({ report: latestReport._id, file: relativePath }).sort({ line: 1 }).lean()
-    : [];
+
+  console.log("📊 Latest Report ID:", project.latestReport);
+
+  let issues = [];
+
+  if (latestReport) {
+    issues = await Issue.find({
+      report: latestReport._id,
+      file: { $regex: relativePath, $options: "i" } // 🔥 KEY FIX
+    })
+      .sort({ line: 1 })
+      .lean();
+
+    console.log("✅ Issues found:", issues.length);
+  } else {
+    console.log("❌ No latest report found");
+  }
 
   res.json({
     file: relativePath,
