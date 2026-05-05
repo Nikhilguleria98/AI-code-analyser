@@ -3,6 +3,7 @@ import passport from 'passport';
 import { authLimiter } from '../middleware/rateLimiter.js';
 import { getMe, githubCallback, login, register, getUserStats, updateUserPreferences } from '../controllers/authController.js';
 import { protect } from '../middleware/authMiddleware.js';
+import { googleLogin } from '../middleware/googleAuth.js';
 
 const router = express.Router();
 
@@ -11,6 +12,7 @@ router.post('/login', authLimiter, login);
 router.get('/me', protect, getMe);
 router.get('/stats', protect, getUserStats);
 router.post('/preferences', protect, updateUserPreferences);
+router.post("/google", googleLogin);
 router.get('/github', passport.authenticate('github', { scope: ['user:email'] }));
 router.get('/github/callback', passport.authenticate('github', { session: false }), githubCallback);
 
