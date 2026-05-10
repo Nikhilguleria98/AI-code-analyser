@@ -19,7 +19,12 @@ const UploadPanel = ({ onUploaded }) => {
       if (mode === 'paste') {
         const response = await api.post('/projects/analyze-code', { code: pastedCode, language: 'javascript' });
         // For paste, we don't create a project, just show issues
-        onUploaded({ issues: response.data.issues, mode: 'paste', code: pastedCode });
+        onUploaded({
+          issues: response.data.issues,
+          execution: response.data.execution,
+          mode: 'paste',
+          code: pastedCode
+        });
         setPastedCode('');
       } else {
         const formData = new FormData();

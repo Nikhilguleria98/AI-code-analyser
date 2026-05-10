@@ -9,6 +9,7 @@ import { isSafeGithubUrl, sanitizeText } from '../utils/security.js';
 import { createProjectWorkspace, extractZipToWorkspace, readFileContent, saveUploadedFileToWorkspace, traverseProject } from '../services/fileService.js';
 import { cloneRepository } from '../services/gitService.js';
 import { analyzeFile, analyzeProject } from '../services/analysisService.js';
+import { runPastedJavaScript } from '../services/executionService.js';
 import { buildTree } from '../utils/fileTree.js';
 
 export const uploadProject = asyncHandler(async (req, res) => {
@@ -119,27 +120,19 @@ export const getProjectFileContent = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'File path is required');
   }
 
-  console.log("📂 Requested file:", relativePath);
-
   const content = await readFileContent(project.rootPath, relativePath);
 
   const latestReport = await Report.findById(project.latestReport);
-
-  console.log("📊 Latest Report ID:", project.latestReport);
 
   let issues = [];
 
   if (latestReport) {
     issues = await Issue.find({
       report: latestReport._id,
-      file: { $regex: relativePath, $options: "i" } // 🔥 KEY FIX
+      file: relativePath
     })
       .sort({ line: 1 })
       .lean();
-
-    console.log("✅ Issues found:", issues.length);
-  } else {
-    console.log("❌ No latest report found");
   }
 
   res.json({
@@ -157,12 +150,51 @@ export const analyzePastedCode = asyncHandler(async (req, res) => {
   }
 
   let issues = [];
+  let execution = {
+    status: 'skipped',
+    output: [],
+    result: '',
+    error: ''
+  };
 
   if (language === 'javascript' || language === 'jsx' || language === 'typescript' || language === 'tsx') {
-    issues = analyzeFile(code, 'pasted-code.' + (language.startsWith('java') ? 'js' : 'ts'));
+    const filePath = 'pasted-code.' + (language.startsWith('java') ? 'js' : 'ts');
+    issues = analyzeFile(code, filePath);
+
+    if (issues.length === 0 && (language === 'javascript' || language === 'jsx')) {
+      execution = runPastedJavaScript(code, filePath);
+
+      if (execution.status === 'error') {
+        issues.push({
+          file: filePath,
+          issue: execution.error,
+          line: execution.line || 1,
+          column: execution.column || 1,
+          endLine: execution.line || 1,
+          endColumn: (execution.column || 1) + 1,
+          severity: 'High',
+          source: 'runtime',
+          errorType: 'Runtime error',
+          ruleId: 'runtime-error',
+          fixSuggestion: 'Fix the runtime exception shown in the output panel, then run the code again.'
+        });
+      }
+    } else if (issues.length > 0) {
+      execution = {
+        status: 'skipped',
+        output: [],
+        result: '',
+        error: 'Code was not executed because analysis found errors first.'
+      };
+    } else {
+      execution = {
+        status: 'skipped',
+        output: [],
+        result: '',
+        error: 'Execution is currently available for pasted JavaScript only.'
+      };
+    }
   }
 
-  // For now, only syntax analysis for pasted code. Could extend to ESLint etc. later.
-
-  res.json({ issues });
+  res.json({ issues, execution });
 });

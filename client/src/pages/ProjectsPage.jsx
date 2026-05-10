@@ -5,6 +5,7 @@ import UploadPanel from '../components/UploadPanel';
 import FileExplorer from '../components/FileExplorer';
 import CodeViewer from '../components/CodeViewer';
 import IssueList from '../components/IssueList';
+import ExecutionOutput from '../components/ExecutionOutput';
 import { useAuth } from '../hooks/useAuth';
 
 const socket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000', {
@@ -20,7 +21,7 @@ const ProjectsPage = () => {
   const [selectedFile, setSelectedFile] = useState('');
   const [content, setContent] = useState('');
   const [issues, setIssues] = useState([]);
-  const [pastedIssues, setPastedIssues] = useState([]);
+  const [execution, setExecution] = useState(null);
   const [progress, setProgress] = useState(null);
 
   const selectedProject = useMemo(
@@ -28,14 +29,46 @@ const ProjectsPage = () => {
     [projects, selectedProjectId]
   );
 
+  const selectFile = async (projectId, filePath) => {
+    if (!projectId && filePath !== 'pasted-code.js') return;
+
+    setSelectedFile(filePath);
+
+    try {
+      const response = await api.get(`/projects/${projectId}/file`, {
+        params: { path: filePath }
+      });
+
+      setContent(response.data.content);
+      setIssues(response.data.issues || []);
+      setExecution(null);
+    } catch (error) {
+      console.error('File fetch error:', error.response?.data || error.message);
+    }
+  };
+
+  const fetchFiles = async (projectId) => {
+    const response = await api.get(`/projects/${projectId}/files`);
+    setProjectFiles(response.data.files || []);
+    setTree(response.data.tree || []);
+    if (response.data.files?.[0]) {
+      selectFile(projectId, response.data.files[0].relativePath);
+    } else {
+      setSelectedFile('');
+      setContent('');
+      setIssues([]);
+      setExecution(null);
+    }
+  };
+
   useEffect(() => {
     api.get('/projects').then((response) => {
-      setProjects(response.data.projects);
-      if (response.data.projects[0]) {
+      setProjects(response.data.projects || []);
+      if (response.data.projects?.[0]) {
         setSelectedProjectId(response.data.projects[0]._id);
       }
     });
-    refreshUserStats(); // Refresh stats when component mounts
+    refreshUserStats();
   }, [refreshUserStats]);
 
   useEffect(() => {
@@ -46,7 +79,7 @@ const ProjectsPage = () => {
       if (selectedProjectId) {
         fetchFiles(selectedProjectId);
       }
-      refreshUserStats(); // Refresh stats after analysis completion
+      refreshUserStats();
     });
 
     return () => {
@@ -54,7 +87,7 @@ const ProjectsPage = () => {
       socket.off('analysis:completed');
       socket.disconnect();
     };
-  }, [selectedProjectId]);
+  }, [selectedProjectId, refreshUserStats]);
 
   useEffect(() => {
     if (selectedProjectId) {
@@ -63,35 +96,9 @@ const ProjectsPage = () => {
     }
   }, [selectedProjectId]);
 
-  const fetchFiles = async (projectId) => {
-    const response = await api.get(`/projects/${projectId}/files`);
-    setProjectFiles(response.data.files);
-    setTree(response.data.tree);
-    if (response.data.files[0]) {
-      selectFile(projectId, response.data.files[0].relativePath);
-    }
-  };
-
-  const selectFile = async (projectId, filePath) => {
-  setSelectedFile(filePath);
-
-  try {
-    const response = await api.get(`/projects/${projectId}/file`, {
-      params: { path: filePath }
-    });
-
-    console.log("📂 Selected File:", filePath);
-    console.log("🔥 API Issues:", response.data.issues);
-
-    setContent(response.data.content);
-    setIssues(response.data.issues);
-  } catch (error) {
-    console.error("❌ File fetch error:", error.response?.data || error.message);
-  }
-};
-
   const triggerAnalysis = async () => {
     if (!selectedProjectId) return;
+    setProgress({ projectId: selectedProjectId, step: 'Starting analysis', progress: 5 });
     await api.post('/projects/analyze', { projectId: selectedProjectId });
   };
 
@@ -100,14 +107,18 @@ const ProjectsPage = () => {
       <UploadPanel
         onUploaded={(uploaded) => {
           if (uploaded.mode === 'paste') {
-            setPastedIssues(uploaded.issues);
+            setSelectedProjectId('');
             setSelectedFile('pasted-code.js');
             setContent(uploaded.code);
-            setIssues(uploaded.issues);
+            setIssues(uploaded.issues || []);
+            setExecution(uploaded.execution || null);
+            setTree([]);
+            setProjectFiles([]);
           } else {
+            setExecution(null);
             setProjects((current) => [{ ...uploaded, _id: uploaded.id }, ...current]);
             setSelectedProjectId(uploaded.id);
-            refreshUserStats(); // Refresh stats after project creation
+            refreshUserStats();
           }
         }}
       />
@@ -126,23 +137,32 @@ const ProjectsPage = () => {
           ))}
         </select>
 
-        <button onClick={triggerAnalysis} className="rounded-xl bg-accent px-5 py-3 font-medium text-slate-950">
+        <button
+          onClick={triggerAnalysis}
+          disabled={!selectedProjectId}
+          className="rounded-xl bg-accent px-5 py-3 font-medium text-slate-950 transition hover:opacity-90 disabled:opacity-60"
+        >
           Run Analysis
         </button>
 
         <p className="text-sm text-soft">
           {progress && progress.projectId === selectedProjectId
-            ? `${progress.step} · ${progress.progress}%`
+            ? `${progress.step} - ${progress.progress}%`
             : selectedProject
               ? `${selectedProject.fileCount || projectFiles.length} files indexed`
-              : 'Choose a project to inspect'}
+              : selectedFile === 'pasted-code.js'
+                ? 'Viewing pasted code analysis'
+                : 'Choose a project to inspect'}
         </p>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[280px_1fr_340px]">
         <FileExplorer tree={tree} activePath={selectedFile} onSelect={(file) => selectFile(selectedProjectId, file)} />
         <CodeViewer filePath={selectedFile} content={content} issues={issues} />
-        <IssueList issues={issues} />
+        <div className="space-y-6">
+          <ExecutionOutput execution={execution} />
+          <IssueList issues={issues} />
+        </div>
       </div>
     </div>
   );

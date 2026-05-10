@@ -55,7 +55,7 @@ export const getUserIssues = asyncHandler(async (req, res) => {
   const userId = req.user._id;
 
   // Get all projects for the user
-  const projects = await Project.find({ createdBy: userId }).select('_id');
+  const projects = await Project.find({ user: userId }).select('_id');
   const projectIds = projects.map((p) => p._id);
 
   // Get all reports for user's projects

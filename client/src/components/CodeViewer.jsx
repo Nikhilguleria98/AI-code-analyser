@@ -18,11 +18,11 @@ const CodeViewer = ({ filePath, content, issues }) => {
     }
 
     const markers = (issues || []).map((issue) => ({
-      startLineNumber: issue.line,
-      endLineNumber: issue.line,
-      startColumn: 1,
-      endColumn: 120,
-      message: `${issue.issue}\n${issue.fixSuggestion}`,
+      startLineNumber: issue.line || 1,
+      endLineNumber: issue.endLine || issue.line || 1,
+      startColumn: issue.column || 1,
+      endColumn: issue.endColumn || issue.column || 120,
+      message: `${issue.errorType || issue.source || 'Issue'}: ${issue.issue}\nSolution: ${issue.fixSuggestion}`,
       severity:
         issue.severity === 'Critical' || issue.severity === 'High'
           ? monaco.MarkerSeverity.Error

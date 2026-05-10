@@ -20,9 +20,25 @@ const issueSchema = new mongoose.Schema(
       type: Number,
       default: 1
     },
+    column: {
+      type: Number,
+      default: 1
+    },
+    endLine: {
+      type: Number,
+      default: 1
+    },
+    endColumn: {
+      type: Number,
+      default: 120
+    },
     issue: {
       type: String,
       required: true
+    },
+    errorType: {
+      type: String,
+      default: ''
     },
     severity: {
       type: String,
@@ -35,7 +51,7 @@ const issueSchema = new mongoose.Schema(
     },
     source: {
       type: String,
-      enum: ['eslint', 'semgrep', 'ai'],
+      enum: ['syntax', 'runtime', 'eslint', 'semgrep', 'ai'],
       required: true
     },
     ruleId: {
